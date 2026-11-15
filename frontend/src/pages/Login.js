@@ -80,8 +80,23 @@ function Login() {
       saveUser(data);
 
       console.log("Login successful");
+      console.log("Logged-in role:", data.role);
 
-      navigate("/dashboard");
+
+      // =========================
+      // ROLE-BASED REDIRECTION
+      // =========================
+
+      if (data.role === "ADMIN") {
+
+        navigate("/admin/dashboard");
+
+      } else {
+
+        navigate("/dashboard");
+
+      }
+
 
     } catch (error) {
       console.error("Login error:", error);
@@ -124,7 +139,7 @@ function Login() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="studentId@manit.ac.in"
+              placeholder="studentId@stu.manit.ac.in"
               required
               disabled={loading}
             />
@@ -176,3 +191,4 @@ function Login() {
 }
 
 export default Login;
+

@@ -13,7 +13,7 @@ import Candidates from "./pages/Candidates";
 import Results from "./pages/Results";
 import CreateElection from "./pages/CreateElection";
 import Nominations from "./pages/Nominations";
-
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
@@ -63,6 +63,11 @@ function App() {
 <Route
   path="/election-officer/nominations"
   element={<Nominations />}
+/>
+
+<Route
+  path="/admin/dashboard"
+  element={<AdminDashboard />}
 />
 
 

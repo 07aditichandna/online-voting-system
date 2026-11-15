@@ -82,14 +82,30 @@ function Nominations() {
           await assignmentResponse.json();
 
 
-        setAssignment(assignmentData);
+        /*
+         * The backend now returns:
+         *
+         * {
+         *   currentAssignment: {...},
+         *   pendingResults: [...]
+         * }
+         *
+         * We only need currentAssignment
+         * on this page.
+         */
+
+        const currentAssignment =
+          assignmentData?.currentAssignment || null;
+
+
+        setAssignment(currentAssignment);
 
 
         /*
          * No election assigned yet.
          */
 
-        if (!assignmentData?.electionId) {
+        if (!currentAssignment?.electionId) {
 
           setNominations([]);
 
@@ -105,7 +121,7 @@ function Nominations() {
 
         const nominationResponse =
           await fetch(
-            `${API_BASE_URL}/api/nominations/election/${assignmentData.electionId}/pending`,
+            `${API_BASE_URL}/api/nominations/election/${currentAssignment.electionId}/pending`,
             {
               method: "GET",
               headers: {
@@ -739,4 +755,5 @@ function Nominations() {
 }
 
 export default Nominations;
+
 

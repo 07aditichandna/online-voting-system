@@ -1,6 +1,4 @@
 
-
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -40,6 +38,16 @@ function Register() {
     setMessage("");
     setError("");
 
+    // Validate MANIT student email format
+    const emailPattern = /^[0-9]+@stu\.manit\.ac\.in$/;
+
+    if (!emailPattern.test(formData.email.trim())) {
+      setError(
+        "Please enter a valid MANIT student email (schlno@stu.manit.ac.in)."
+      );
+      return;
+    }
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/auth/register`,
@@ -50,19 +58,30 @@ function Register() {
           },
           body: JSON.stringify({
             ...formData,
+            email: formData.email.trim(),
             year: Number(formData.year)
           })
         }
       );
 
-      const data = await response.json();
+      // Read backend response safely
+      const responseText = await response.text();
+
+      let data;
+
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        data = responseText;
+      }
 
       if (!response.ok) {
-        throw new Error(
+        const errorMessage =
           typeof data === "string"
             ? data
-            : "Registration failed"
-        );
+            : data?.message || data?.error || "Registration failed";
+
+        throw new Error(errorMessage);
       }
 
       setMessage("Account created successfully!");
@@ -83,7 +102,9 @@ function Register() {
       }, 1000);
 
     } catch (error) {
-      setError(error.message);
+      setError(
+        error.message || "Something went wrong. Please try again."
+      );
     }
   };
 
@@ -160,7 +181,7 @@ function Register() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="studentId@manit.ac.in"
+              placeholder="studentId@stu.manit.ac.in"
               required
             />
           </div>

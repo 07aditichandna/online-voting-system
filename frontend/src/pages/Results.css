@@ -203,6 +203,49 @@
   font-size: 12px;
 }
 
+/* TIE MESSAGE */
+
+.tie-section {
+  margin-top: 20px;
+  padding: 25px;
+  text-align: center;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+}
+
+.tie-icon {
+  font-size: 38px;
+  margin-bottom: 10px;
+}
+
+.tie-section h2 {
+  color: #c2410c;
+  margin: 0 0 10px;
+  font-size: 23px;
+}
+
+.tie-section p {
+  color: #9a3412;
+  font-size: 14px;
+  margin: 7px 0;
+}
+
+/* TOTAL VOTES */
+
+.total-votes {
+  margin-top: 25px;
+  padding: 15px;
+  background: #eff6ff;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.total-votes h3 {
+  margin: 0;
+  color: #1d4ed8;
+}
+
 /* CANDIDATE RESULTS */
 
 .candidate-results-section {
@@ -234,6 +277,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   background: #ffffff;
+  margin-bottom: 12px;
 }
 
 .candidate-result-info {
@@ -282,6 +326,27 @@
   margin-left: 5px;
   color: #6b7280;
   font-size: 13px;
+}
+
+/* CANDIDATE STATUS */
+
+.candidate-status {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.winner-status {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.tied-status {
+  color: #c2410c;
+  background: #ffedd5;
 }
 
 /* RELEASE */
@@ -492,4 +557,3 @@
   }
 
 }
-

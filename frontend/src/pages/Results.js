@@ -32,11 +32,6 @@ function Results() {
           return;
         }
 
-        /*
-         * Backend API:
-         * GET /api/results/{electionId}
-         */
-
         const response = await fetch(
           `${API_BASE_URL}/api/results/${electionId}`,
           {
@@ -47,25 +42,17 @@ function Results() {
           }
         );
 
-        const responseText =
-          await response.text();
+        const responseText = await response.text();
 
         let data = null;
 
         if (responseText.trim() !== "") {
-
           try {
             data = JSON.parse(responseText);
           } catch {
             data = responseText;
           }
-
         }
-
-        /*
-         * Only 401 means the login/token is invalid.
-         * Do not logout on 403.
-         */
 
         if (response.status === 401) {
           logout();
@@ -74,31 +61,23 @@ function Results() {
         }
 
         if (!response.ok) {
-
           throw new Error(
             typeof data === "string"
               ? data
               : "Failed to load election results."
           );
-
         }
 
         setResults(
-          Array.isArray(data)
-            ? data
-            : []
+          Array.isArray(data) ? data : []
         );
 
       } catch (error) {
 
-        console.error(
-          "Results fetch error:",
-          error
-        );
+        console.error("Results fetch error:", error);
 
         setError(
-          error.message ||
-          "Something went wrong."
+          error.message || "Something went wrong."
         );
 
       } finally {
@@ -114,41 +93,27 @@ function Results() {
   }, [electionId, navigate]);
 
 
-  /*
-   * LOADING
-   */
+  /* LOADING */
 
   if (loading) {
 
     return (
-
       <div className="results-page">
-
         <div className="results-card loading-results">
-
           <div className="results-spinner"></div>
-
-          <p>
-            Loading election results...
-          </p>
-
+          <p>Loading election results...</p>
         </div>
-
       </div>
-
     );
 
   }
 
 
-  /*
-   * ERROR
-   */
+  /* ERROR */
 
   if (error) {
 
     return (
-
       <div className="results-page">
 
         <div className="results-card">
@@ -156,9 +121,7 @@ function Results() {
           <button
             className="results-back-button"
             onClick={() =>
-              navigate(
-                `/elections/${electionId}`
-              )
+              navigate(`/elections/${electionId}`)
             }
           >
             [ Election Details ]
@@ -169,15 +132,8 @@ function Results() {
             <span>⚠️</span>
 
             <div>
-
-              <h3>
-                Unable to load results
-              </h3>
-
-              <p>
-                {error}
-              </p>
-
+              <h3>Unable to load results</h3>
+              <p>{error}</p>
             </div>
 
           </div>
@@ -185,20 +141,16 @@ function Results() {
         </div>
 
       </div>
-
     );
 
   }
 
 
-  /*
-   * NO RESULTS
-   */
+  /* NO RESULTS */
 
   if (results.length === 0) {
 
     return (
-
       <div className="results-page">
 
         <div className="results-card">
@@ -206,9 +158,7 @@ function Results() {
           <button
             className="results-back-button"
             onClick={() =>
-              navigate(
-                `/elections/${electionId}`
-              )
+              navigate(`/elections/${electionId}`)
             }
           >
             [ Election Details ]
@@ -220,9 +170,7 @@ function Results() {
               🗳️
             </div>
 
-            <h2>
-              No Results Available
-            </h2>
+            <h2>No Results Available</h2>
 
             <p>
               Results have not been released
@@ -234,20 +182,12 @@ function Results() {
         </div>
 
       </div>
-
     );
 
   }
 
 
-  /*
-   * API RESPONSE
-   *
-   * results[0]
-   * ├── result
-   * ├── candidate
-   * └── voteCount
-   */
+  /* RESULT DATA */
 
   const firstResult = results[0];
 
@@ -260,11 +200,51 @@ function Results() {
   const winnerUser =
     winner?.user;
 
-  const candidate =
-    firstResult.candidate;
 
-  const candidateUser =
-    candidate?.user;
+  /* TOTAL VOTES */
+
+  const totalVotes = results.reduce(
+    (total, item) =>
+      total + (item.voteCount ?? 0),
+    0
+  );
+
+
+  /* HIGHEST VOTE COUNT */
+
+  const highestVotes = Math.max(
+    ...results.map(
+      item => item.voteCount ?? 0
+    )
+  );
+
+
+  /* CANDIDATES WITH HIGHEST VOTES */
+
+  const topCandidates = results.filter(
+    item =>
+      (item.voteCount ?? 0) === highestVotes
+  );
+
+
+  /* TIE DETECTION */
+
+  const isTie = topCandidates.length > 1;
+
+
+  /* WINNER VOTE COUNT */
+
+  const winnerResult = !isTie
+    ? results.find(
+        item =>
+          winner?.id != null &&
+          String(item.candidate?.id) ===
+          String(winner.id)
+      )
+    : null;
+
+  const winnerVotes =
+    winnerResult?.voteCount ?? 0;
 
 
   return (
@@ -274,14 +254,12 @@ function Results() {
       <div className="results-card">
 
 
-        {/* BACK */}
+        {/* BACK BUTTON */}
 
         <button
           className="results-back-button"
           onClick={() =>
-            navigate(
-              `/elections/${electionId}`
-            )
+            navigate(`/elections/${electionId}`)
           }
         >
           [ Election Details ]
@@ -297,14 +275,12 @@ function Results() {
           </span>
 
           <h1>
-            {election?.title ||
-              "Election Results"}
+            {election?.title || "Election Results"}
           </h1>
 
           <p>
             The voting period for this election
-            has ended and the result has been
-            released.
+            has ended and the result has been released.
           </p>
 
         </div>
@@ -313,7 +289,6 @@ function Results() {
         {/* ELECTION INFORMATION */}
 
         <div className="results-info-grid">
-
 
           <div className="result-info-item">
 
@@ -337,7 +312,7 @@ function Results() {
 
             <span className="result-info-value">
               {election?.post?.name ||
-                candidate?.nomination?.position ||
+                firstResult.candidate?.nomination?.position ||
                 "Not available"}
             </span>
 
@@ -351,8 +326,7 @@ function Results() {
             </span>
 
             <span className="result-info-value completed-result">
-              {election?.status ||
-                "COMPLETED"}
+              {election?.status || "COMPLETED"}
             </span>
 
           </div>
@@ -360,90 +334,109 @@ function Results() {
         </div>
 
 
-        {/* WINNER */}
+        {/* WINNER OR TIE */}
 
-        <section className="winner-section">
+        {isTie ? (
 
-          <div className="winner-heading">
+          <section className="tie-section">
 
-            <span className="winner-trophy">
-              🏆
-            </span>
-
-            <div>
-
-              <h2>
-                Winner
-              </h2>
-
-              <p>
-                Elected candidate
-              </p>
-
+            <div className="tie-icon">
+              ⚖️
             </div>
 
-          </div>
+            <h2>
+              Election Result: Tie
+            </h2>
 
+            <p>
+              The election has ended in a tie. No winner has been declared.
+            </p>
 
-          <div className="winner-card">
+            <p>
+              Highest Votes:{" "}
+              <strong>{highestVotes}</strong>
+            </p>
 
+          </section>
 
-            <div className="winner-avatar">
+        ) : (
 
-              {winnerUser?.firstName
-                ?.charAt(0)
-                ?.toUpperCase()}
+          <section className="winner-section">
 
-            </div>
+            <div className="winner-heading">
 
+              <span className="winner-trophy">
+                🏆
+              </span>
 
-            <div className="winner-details">
-
-              <h3>
-
-                {winnerUser?.firstName}{" "}
-                {winnerUser?.lastName}
-
-              </h3>
-
-
-              <p>
-
-                Student ID:{" "}
-                {winnerUser?.studentId}
-
-              </p>
-
-
-              <p>
-
-                {winnerUser?.department}
-                {" • "}
-                {winnerUser?.course}
-                {" • Year "}
-                {winnerUser?.year}
-
-              </p>
+              <div>
+                <h2>Winner</h2>
+                <p>Elected candidate</p>
+              </div>
 
             </div>
 
 
-            <div className="winner-votes">
-  <strong>
-    {firstResult.voteCount ?? 0}
-  </strong>
+            <div className="winner-card">
 
-  <span>
-    Votes
-  </span>
-</div>
+              <div className="winner-avatar">
 
-          </div>
+                {winnerUser?.firstName
+                  ?.charAt(0)
+                  ?.toUpperCase()}
 
-        </section>
+              </div>
 
 
-        {/* CANDIDATE RESULTS */}
+              <div className="winner-details">
+
+                <h3>
+                  {winnerUser?.firstName}{" "}
+                  {winnerUser?.lastName}
+                </h3>
+
+                <p>
+                  Student ID: {winnerUser?.studentId}
+                </p>
+
+                <p>
+                  {winnerUser?.department}
+                  {" • "}
+                  {winnerUser?.course}
+                  {" • Year "}
+                  {winnerUser?.year}
+                </p>
+
+              </div>
+
+
+              <div className="winner-votes">
+
+                <strong>{winnerVotes}</strong>
+
+                <span>Votes</span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* TOTAL VOTES */}
+
+        <div className="total-votes">
+
+          <h3>
+            Total Votes: {totalVotes}
+          </h3>
+
+        </div>
+
+
+        {/* ALL CANDIDATE RESULTS */}
 
         <section className="candidate-results-section">
 
@@ -456,7 +449,7 @@ function Results() {
               </h2>
 
               <p>
-                Votes received by the candidate
+                Vote counts received by all candidates
               </p>
 
             </div>
@@ -464,54 +457,88 @@ function Results() {
           </div>
 
 
-          <div className="candidate-result-card">
+          {results.map(item => {
+
+            const candidate = item.candidate;
+            const candidateUser = candidate?.user;
+            const votes = item.voteCount ?? 0;
+
+            const isWinner =
+              !isTie &&
+              winner?.id != null &&
+              String(winner.id) ===
+              String(candidate?.id);
+
+            const isTiedCandidate =
+              isTie && votes === highestVotes;
 
 
-            <div className="candidate-result-info">
+            return (
+
+              <div
+                className="candidate-result-card"
+                key={item.id}
+              >
+
+                <div className="candidate-result-info">
+
+                  <div className="candidate-result-avatar">
+
+                    {candidateUser?.firstName
+                      ?.charAt(0)
+                      ?.toUpperCase()}
+
+                  </div>
 
 
-              <div className="candidate-result-avatar">
+                  <div>
 
-                {candidateUser?.firstName
-                  ?.charAt(0)
-                  ?.toUpperCase()}
+                    <h3>
+                      {candidateUser?.firstName}{" "}
+                      {candidateUser?.lastName}
+                    </h3>
+
+                    <p>
+                      {candidate?.nomination?.position ||
+                        election?.post?.name}
+                    </p>
+
+
+                    {isWinner && (
+
+                      <span className="candidate-status winner-status">
+                        🏆 WINNER
+                      </span>
+
+                    )}
+
+
+                    {isTiedCandidate && (
+
+                      <span className="candidate-status tied-status">
+                        TIED
+                      </span>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+
+                <div className="candidate-result-votes">
+
+                  <strong>{votes}</strong>
+
+                  <span>votes</span>
+
+                </div>
 
               </div>
 
+            );
 
-              <div>
-
-                <h3>
-
-                  {candidateUser?.firstName}{" "}
-                  {candidateUser?.lastName}
-
-                </h3>
-
-
-                <p>
-
-                  {candidate?.nomination?.position ||
-                    election?.post?.name}
-
-                </p>
-
-              </div>
-
-            </div>
-
-
-          <div className="candidate-result-votes">
-  <strong>
-    {firstResult.voteCount ?? 0}
-  </strong>
-
-  <span>
-    votes
-  </span>
-</div>
-
-          </div>
+          })}
 
         </section>
 
@@ -520,27 +547,20 @@ function Results() {
 
         <section className="release-section">
 
-
           <div className="release-icon">
             ✓
           </div>
 
-
           <div>
 
-            <h3>
-              Result Released
-            </h3>
-
+            <h3>Result Released</h3>
 
             <p>
-
               {firstResult.result?.releasedAt
                 ? new Date(
                     firstResult.result.releasedAt
                   ).toLocaleString()
                 : "Release time unavailable"}
-
             </p>
 
           </div>
@@ -554,9 +574,7 @@ function Results() {
 
           <button
             className="dashboard-button"
-            onClick={() =>
-              navigate("/dashboard")
-            }
+            onClick={() => navigate("/dashboard")}
           >
             [ Dashboard ]
           </button>
@@ -573,4 +591,3 @@ function Results() {
 }
 
 export default Results;
-
