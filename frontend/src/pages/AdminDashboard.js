@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getToken, getUser, logout } from "../services/auth";
 import API_BASE_URL from "../services/api";
@@ -21,13 +22,16 @@ function AdminDashboard() {
     const [assigningUserId, setAssigningUserId] = useState(null);
     const [actionMessage, setActionMessage] = useState("");
 
+    // Audit Logs
+    const [auditLogs, setAuditLogs] = useState([]);
+    const [auditLoading, setAuditLoading] = useState(false);
+    const [auditError, setAuditError] = useState("");
+    const [showAuditLogs, setShowAuditLogs] = useState(false);
+
     const user = getUser();
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    const fetchUsers = async () => {
+    // FETCH USERS
+    const fetchUsers = useCallback(async () => {
         try {
             const token = getToken();
 
@@ -58,8 +62,13 @@ function AdminDashboard() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [navigate]);
 
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
+
+    // ASSIGN ELECTION OFFICER
     const handleAssignEO = async (userId) => {
         const confirmAssign = window.confirm(
             "Are you sure you want to assign this user as an Election Officer?"
@@ -107,13 +116,65 @@ function AdminDashboard() {
 
         } catch (error) {
             console.error("Error assigning EO:", error);
-            setActionMessage(error.message || "Failed to assign Election Officer");
+            setActionMessage(
+                error.message || "Failed to assign Election Officer"
+            );
         } finally {
             setAssigningUserId(null);
         }
     };
 
-    // Filter options
+    // FETCH AUDIT LOGS
+    const fetchAuditLogs = async () => {
+        try {
+            setAuditLoading(true);
+            setAuditError("");
+
+            const token = getToken();
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/audit-logs`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (response.status === 401 || response.status === 403) {
+                throw new Error(
+                    "You are not authorized to view audit logs."
+                );
+            }
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch audit logs.");
+            }
+
+            const data = await response.json();
+            setAuditLogs(data);
+
+        } catch (error) {
+            console.error("Error fetching audit logs:", error);
+            setAuditError(error.message);
+
+        } finally {
+            setAuditLoading(false);
+        }
+    };
+
+    // SHOW / HIDE AUDIT LOGS
+    const handleViewAuditLogs = () => {
+        const nextState = !showAuditLogs;
+
+        setShowAuditLogs(nextState);
+
+        if (nextState) {
+            fetchAuditLogs();
+        }
+    };
+
+    // FILTER OPTIONS
     const departments = [
         ...new Set(
             users
@@ -138,7 +199,7 @@ function AdminDashboard() {
         )
     ].sort((a, b) => a - b);
 
-    // Apply filters
+    // APPLY FILTERS
     const filteredUsers = users.filter((user) => {
         const search = searchTerm.toLowerCase();
 
@@ -175,6 +236,7 @@ function AdminDashboard() {
         );
     });
 
+    // CLEAR FILTERS
     const clearFilters = () => {
         setSearchTerm("");
         setDepartmentFilter("");
@@ -196,26 +258,133 @@ function AdminDashboard() {
     return (
         <div className="admin-dashboard">
 
-            {/* Header */}
+            {/* HEADER */}
             <header className="admin-header">
+
                 <div>
                     <h1>Admin Dashboard</h1>
                     <p>Manage users and Election Officer assignments</p>
                 </div>
 
-                <button
-                    className="admin-logout-btn"
-                    onClick={() => {
-                        logout();
-                        navigate("/login");
-                    }}
-                >
-                    Logout
-                </button>
+                <div className="admin-header-actions">
+
+                    <button
+                        className="audit-logs-btn"
+                        onClick={handleViewAuditLogs}
+                    >
+                        {showAuditLogs
+                            ? "Hide Audit Logs"
+                            : "View Audit Logs"}
+                    </button>
+
+                    <button
+                        className="admin-logout-btn"
+                        onClick={() => {
+                            logout();
+                            navigate("/login");
+                        }}
+                    >
+                        Logout
+                    </button>
+
+                </div>
+
             </header>
 
-            {/* Welcome */}
+            {/* AUDIT LOGS SECTION */}
+            {showAuditLogs && (
+                <section className="admin-audit-section">
+
+                    <div className="admin-users-header">
+
+                        <h2>System Audit Logs</h2>
+
+                        <button
+                            className="audit-refresh-btn"
+                            onClick={fetchAuditLogs}
+                            disabled={auditLoading}
+                        >
+                            {auditLoading ? "Refreshing..." : "Refresh"}
+                        </button>
+
+                    </div>
+
+                    {auditLoading ? (
+                        <p className="admin-loading">
+                            Loading audit logs...
+                        </p>
+                    ) : auditError ? (
+                        <p className="audit-error">
+                            {auditError}
+                        </p>
+                    ) : auditLogs.length === 0 ? (
+                        <p className="admin-no-users">
+                            No audit records found.
+                        </p>
+                    ) : (
+
+                        <div className="admin-table-container">
+
+                            <table className="admin-users-table">
+
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Description</th>
+                                        <th>Timestamp</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    {auditLogs.map((log) => {
+
+                                        const logUser = log.user
+                                            ? `${log.user.firstName || ""} ${log.user.lastName || ""}`.trim()
+                                            : "System / Unknown";
+
+                                        return (
+                                            <tr key={log.id}>
+
+                                                <td>{log.id}</td>
+
+                                                <td>{logUser}</td>
+
+                                                <td>
+                                                    <span className="audit-action-label">
+                                                        {log.action}
+                                                    </span>
+                                                </td>
+
+                                                <td>{log.description || "N/A"}</td>
+
+                                                <td>
+                                                    {log.timestamp
+                                                        ? new Date(
+                                                              log.timestamp
+                                                          ).toLocaleString()
+                                                        : "N/A"}
+                                                </td>
+
+                                            </tr>
+                                        );
+                                    })}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+                    )}
+
+                </section>
+            )}
+
+            {/* WELCOME */}
             <section className="admin-welcome-card">
+
                 <h2>
                     Welcome, {user?.firstName || "Admin"} 👋
                 </h2>
@@ -224,9 +393,10 @@ function AdminDashboard() {
                     Use the filters below to quickly find a user
                     and assign them as an Election Officer.
                 </p>
+
             </section>
 
-            {/* Statistics */}
+            {/* STATISTICS */}
             <section className="admin-stats">
 
                 <div className="admin-stat-card">
@@ -246,7 +416,7 @@ function AdminDashboard() {
 
             </section>
 
-            {/* Filters */}
+            {/* FILTERS */}
             <section className="admin-filters">
 
                 <div className="filter-group search-group">
@@ -354,22 +524,24 @@ function AdminDashboard() {
 
             </section>
 
-            {/* Message */}
+            {/* ACTION MESSAGE */}
             {actionMessage && (
                 <div className="admin-action-message">
                     {actionMessage}
                 </div>
             )}
 
-            {/* Users */}
+            {/* REGISTERED USERS */}
             <section className="admin-users-section">
 
                 <div className="admin-users-header">
+
                     <h2>Registered Users</h2>
 
                     <span>
                         Showing {filteredUsers.length} of {users.length}
                     </span>
+
                 </div>
 
                 {loading ? (
@@ -381,7 +553,9 @@ function AdminDashboard() {
                         No users match the selected filters.
                     </p>
                 ) : (
+
                     <div className="admin-table-container">
+
                         <table className="admin-users-table">
 
                             <thead>
@@ -398,6 +572,7 @@ function AdminDashboard() {
                             </thead>
 
                             <tbody>
+
                                 {filteredUsers.map((user) => (
                                     <tr key={user.id}>
 
@@ -431,18 +606,24 @@ function AdminDashboard() {
                                         </td>
 
                                         <td>
+
                                             {user.role === "ADMIN" ? (
+
                                                 <span className="admin-user-label">
                                                     Admin
                                                 </span>
+
                                             ) : user.eoStatus === "ACTIVE" ? (
+
                                                 <button
                                                     className="assigned-btn"
                                                     disabled
                                                 >
                                                     Assigned
                                                 </button>
+
                                             ) : (
+
                                                 <button
                                                     className="assign-eo-btn"
                                                     onClick={() =>
@@ -457,15 +638,20 @@ function AdminDashboard() {
                                                         ? "Assigning..."
                                                         : "Assign EO"}
                                                 </button>
+
                                             )}
+
                                         </td>
 
                                     </tr>
                                 ))}
+
                             </tbody>
 
                         </table>
+
                     </div>
+
                 )}
 
             </section>
@@ -475,3 +661,4 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
+
