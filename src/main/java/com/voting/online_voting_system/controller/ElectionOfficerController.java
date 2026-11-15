@@ -85,7 +85,7 @@ public class ElectionOfficerController {
                     .findByEmail(adminEmail)
                     .orElseThrow(() ->
                             new RuntimeException(
-                                    "Admin user not found"
+                                    "eo user not found"
                             ));
 
             // End EO assignment

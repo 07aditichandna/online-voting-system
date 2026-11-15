@@ -99,6 +99,9 @@ public class SecurityConfig {
                         ).hasAuthority("SUBMIT_NOMINATION")
 
                         // Admin
+                        .requestMatchers("/api/admin/users")
+                        .hasAuthority("VIEW_USERS")
+
                         .requestMatchers(
                                 "/api/admin/audit-log"
                         ).hasAuthority("VIEW_AUDIT_LOG")

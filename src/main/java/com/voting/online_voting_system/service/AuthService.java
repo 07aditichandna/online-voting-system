@@ -1,19 +1,26 @@
+
 package com.voting.online_voting_system.service;
 
 import com.voting.online_voting_system.dto.RegisterRequest;
 import com.voting.online_voting_system.entity.User;
 import com.voting.online_voting_system.enums.Role;
 import com.voting.online_voting_system.repository.UserRepository;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import com.voting.online_voting_system.dto.AuthResponse;
 import com.voting.online_voting_system.dto.LoginRequest;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 public class AuthService {
@@ -22,18 +29,26 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final AuditLogService auditLogService;
+
+    // Tracks consecutive failed login attempts per email
+    private final ConcurrentMap<String, Integer> failedLoginAttempts =
+            new ConcurrentHashMap<>();
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
-            JwtService jwtService) {
+            JwtService jwtService,
+            AuditLogService auditLogService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.auditLogService = auditLogService;
     }
+
     public User register(RegisterRequest request) {
 
         // Check whether student ID already exists
@@ -52,11 +67,11 @@ public class AuthService {
 
         // Check MANIT email format
         String expectedEmail =
-                request.getStudentId() + "@manit.ac.in";
+                request.getStudentId() + "@stu.manit.ac.in";
 
         if (!request.getEmail().equalsIgnoreCase(expectedEmail)) {
             throw new RuntimeException(
-                    "Email must be in the format studentId@manit.ac.in"
+                    "Email must be in the format studentId@stu.manit.ac.in"
             );
         }
 
@@ -88,13 +103,46 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
 
-        Authentication authentication =
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                request.getEmail(),
-                                request.getPassword()
-                        )
+        String email = request.getEmail().trim().toLowerCase();
+
+        Authentication authentication;
+
+        try {
+
+            // Existing authentication logic
+            authentication =
+                    authenticationManager.authenticate(
+                            new UsernamePasswordAuthenticationToken(
+                                    request.getEmail(),
+                                    request.getPassword()
+                            )
+                    );
+
+            // Successful login: reset consecutive failed attempts
+            failedLoginAttempts.remove(email);
+
+        } catch (AuthenticationException exception) {
+
+            // Increment failed login attempts
+            int attempts = failedLoginAttempts.merge(
+                    email,
+                    1,
+                    Integer::sum
+            );
+
+            // Save audit log without changing the original login response
+            try {
+                auditLogService.logFailedLogin(email, attempts);
+            } catch (Exception auditException) {
+                System.err.println(
+                        "Failed to save login audit log: "
+                                + auditException.getMessage()
                 );
+            }
+
+            // Preserve existing authentication failure
+            throw exception;
+        }
 
         UserDetails userDetails =
                 (UserDetails) authentication.getPrincipal();

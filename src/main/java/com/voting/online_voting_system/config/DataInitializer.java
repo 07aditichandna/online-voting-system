@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Configuration
 public class DataInitializer {
@@ -89,6 +88,13 @@ public class DataInitializer {
                     permissionRepository,
                     "VIEW_AUDIT_LOG",
                     "View audit logs"
+            );
+
+            // NEW PERMISSION
+            createPermission(
+                    permissionRepository,
+                    "VIEW_USERS",
+                    "View registered users"
             );
 
 
@@ -197,6 +203,14 @@ public class DataInitializer {
                     permissionRepository,
                     Role.ADMIN,
                     "VIEW_AUDIT_LOG"
+            );
+
+            // NEW ADMIN PERMISSION
+            assignPermission(
+                    rolePermissionRepository,
+                    permissionRepository,
+                    Role.ADMIN,
+                    "VIEW_USERS"
             );
 
 
